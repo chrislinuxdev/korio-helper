@@ -43,33 +43,23 @@
     <div id="table-container"></div>
 
     <script>
-        // Example JSON structure for table data
-        const tableJson = {
-            headers: ["Name", "Age", "City", "Occupation"],
-            rows: [
-                ["John Doe", "28", "New York", "Software Engineer"],
-                ["Jane Smith", "34", "Los Angeles", "Designer"],
-                ["Mike Johnson", "42", "Chicago", "Manager"],
-                ["Sarah Wilson", "29", "Seattle", "Data Analyst"],
-                ["Tom Brown", "35", "Boston", "Consultant"]
-            ]
-        };
+        // Variables to store loaded JSON data
+        let tableJson = null;
+        let tableJsonAlt = null;
 
-        // Alternative JSON structure with object-based rows
-        const tableJsonAlt = {
-            headers: [
-                { key: "product", label: "Product Name" },
-                { key: "price", label: "Price" },
-                { key: "stock", label: "In Stock" },
-                { key: "category", label: "Category" }
-            ],
-            rows: [
-                { product: "Laptop", price: "$999", stock: "15", category: "Electronics" },
-                { product: "Desk Chair", price: "$149", stock: "8", category: "Furniture" },
-                { product: "Coffee Mug", price: "$12", stock: "50", category: "Kitchen" },
-                { product: "Notebook", price: "$5", stock: "100", category: "Office" }
-            ]
-        };
+        // Function to load JSON data from file
+        async function loadJsonData(filePath) {
+            try {
+                const response = await fetch(filePath);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('Error loading JSON data:', error);
+                return null;
+            }
+        }
 
         // Renderer function for array-based structure
         function renderTableFromArrays(json, containerId) {
@@ -162,6 +152,11 @@
 
         // Auto-detect structure and render
         function renderTable(json, containerId) {
+            if (!json) {
+                console.error('No JSON data provided');
+                return;
+            }
+
             // Check if we have object-based rows or array-based rows
             if (json.rows && json.rows.length > 0) {
                 if (Array.isArray(json.rows[0])) {
@@ -172,16 +167,28 @@
             }
         }
 
-        // Buttons to switch between examples
-        const switchContainer = document.createElement('div');
-        switchContainer.innerHTML = `
-      <button onclick="renderTable(tableJson, 'table-container')">Show Array-based Table</button>
-      <button onclick="renderTable(tableJsonAlt, 'table-container')">Show Object-based Table</button>
-    `;
-        document.body.insertBefore(switchContainer, document.getElementById('table-container'));
+        // Initialize the page
+        async function init() {
+            // Load JSON data from files
+            tableJson = await loadJsonData('../data/table.create.from-array.json');
+            tableJsonAlt = await loadJsonData('../data/table.create.from-object.json');
 
-        // Initial render
-        renderTable(tableJson, "table-container");
+            // Create buttons to switch between examples
+            const switchContainer = document.createElement('div');
+            switchContainer.innerHTML = `
+                <button onclick="renderTable(tableJson, 'table-container')">Show Array-based Table</button>
+                <button onclick="renderTable(tableJsonAlt, 'table-container')">Show Object-based Table</button>
+            `;
+            document.body.insertBefore(switchContainer, document.getElementById('table-container'));
+
+            // Initial render with array-based data
+            if (tableJson) {
+                renderTable(tableJson, "table-container");
+            }
+        }
+
+        // Start the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 

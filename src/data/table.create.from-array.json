@@ -1,0 +1,46 @@
+{
+    "headers": [
+        "Name",
+        "Age",
+        "City",
+        "Occupation"
+    ],
+    "rows": [
+        [
+            "John Doe",
+            "28",
+            "New York",
+            "Software Engineer"
+        ],
+        [
+            "Jane Smith",
+            "34",
+            "Los Angeles",
+            "Designer"
+        ],
+        [
+            "Mike Johnson",
+            "42",
+            "Chicago",
+            "Manager"
+        ],
+        [
+            "Sarah Wilson",
+            "29",
+            "Seattle",
+            "Data Analyst"
+        ],
+        [
+            "Tom Brown",
+            "35",
+            "Boston",
+            "Consultant"
+        ],
+        [
+            "Chris",
+            "40",
+            "Chicago",
+            "Software Engineer"
+        ]
+    ]
+}
