@@ -1,0 +1,52 @@
+{
+    "headers": [
+        {
+            "key": "product",
+            "label": "Product Name"
+        },
+        {
+            "key": "price",
+            "label": "Price"
+        },
+        {
+            "key": "stock",
+            "label": "In Stock"
+        },
+        {
+            "key": "category",
+            "label": "Category"
+        }
+    ],
+    "rows": [
+        {
+            "product": "Laptop",
+            "price": "$999",
+            "stock": "15",
+            "category": "Electronics"
+        },
+        {
+            "product": "Desk Chair",
+            "price": "$149",
+            "stock": "8",
+            "category": "Furniture"
+        },
+        {
+            "product": "Coffee Mug",
+            "price": "$12",
+            "stock": "50",
+            "category": "Kitchen"
+        },
+        {
+            "product": "Notebook",
+            "price": "$5",
+            "stock": "100",
+            "category": "Office"
+        },
+        {
+            "product": "Chris Product",
+            "price": "$75",
+            "stock": "25",
+            "category": "Miscellaneous"
+        }
+    ]
+}

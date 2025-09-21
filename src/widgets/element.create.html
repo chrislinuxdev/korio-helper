@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dynamic Form Renderer Prototype</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; margin-bottom: 6px; }
+    select, input[type="text"], button { min-width: 180px; padding: 6px; }
+  </style>
+</head>
+<body>
+  <h2>Dynamic Form Renderer</h2>
+  <div id="dynamic-form"></div>
+
+  <script>
+    // Example JSON structure for UI elements
+    const formJson = [
+      {
+        type: "label",
+        text: "User Information"
+      },
+      {
+        type: "textbox",
+        label: "Name",
+        id: "username",
+        placeholder: "Enter your name"
+      },
+      {
+        type: "dropdown",
+        label: "Country",
+        id: "country",
+        options: [
+          { value: "", text: "Select Country" },
+          { value: "us", text: "United States" },
+          { value: "ca", text: "Canada" },
+          { value: "uk", text: "United Kingdom" }
+        ]
+      },
+      {
+        type: "button",
+        text: "Submit",
+        id: "submit-btn",
+        onclick: function() {
+          // Example: gather inputs and show an alert
+          const name = document.getElementById('username').value;
+          const country = document.getElementById('country').value;
+          alert(`Name: ${name}\nCountry: ${country}`);
+        }
+      }
+    ];
+
+    // Renderer function
+    function renderForm(json, containerId) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
+
+      json.forEach((item, idx) => {
+        const group = document.createElement('div');
+        group.className = 'form-group';
+
+        if (item.type === "label") {
+          const label = document.createElement('label');
+          label.textContent = item.text;
+          label.style.fontWeight = 'bold';
+          group.appendChild(label);
+        }
+
+        else if (item.type === "textbox") {
+          if (item.label) {
+            const label = document.createElement('label');
+            label.setAttribute('for', item.id);
+            label.textContent = item.label;
+            group.appendChild(label);
+          }
+          const input = document.createElement('input');
+          input.type = "text";
+          input.id = item.id || `textbox-${idx}`;
+          input.placeholder = item.placeholder || "";
+          group.appendChild(input);
+        }
+
+        else if (item.type === "dropdown") {
+          if (item.label) {
+            const label = document.createElement('label');
+            label.setAttribute('for', item.id);
+            label.textContent = item.label;
+            group.appendChild(label);
+          }
+          const select = document.createElement('select');
+          select.id = item.id || `dropdown-${idx}`;
+          (item.options || []).forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.value;
+            option.textContent = opt.text;
+            select.appendChild(option);
+          });
+          group.appendChild(select);
+        }
+
+        else if (item.type === "button") {
+          const button = document.createElement('button');
+          button.id = item.id || `btn-${idx}`;
+          button.textContent = item.text || "Button";
+          button.type = "button";
+          button.onclick = item.onclick;
+          group.appendChild(button);
+        }
+
+        container.appendChild(group);
+      });
+    }
+
+    // Initial render
+    renderForm(formJson, "dynamic-form");
+  </script>
+</body>
+</html>

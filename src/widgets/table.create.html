@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Dynamic Table Renderer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Dynamic Table Renderer</h2>
+    <div id="table-container"></div>
+
+    <script>
+        // Variables to store loaded JSON data
+        let tableJson = null;
+        let tableJsonAlt = null;
+
+        // Function to load JSON data from file
+        async function loadJsonData(filePath) {
+            try {
+                const response = await fetch(filePath);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('Error loading JSON data:', error);
+                return null;
+            }
+        }
+
+        // Renderer function for array-based structure
+        function renderTableFromArrays(json, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = "";
+
+            const table = document.createElement('table');
+
+            // Create header
+            if (json.headers && json.headers.length > 0) {
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+
+                json.headers.forEach(header => {
+                    const th = document.createElement('th');
+                    th.textContent = header;
+                    headerRow.appendChild(th);
+                });
+
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+            }
+
+            // Create body
+            if (json.rows && json.rows.length > 0) {
+                const tbody = document.createElement('tbody');
+
+                json.rows.forEach(row => {
+                    const tr = document.createElement('tr');
+
+                    row.forEach(cellData => {
+                        const td = document.createElement('td');
+                        td.textContent = cellData;
+                        tr.appendChild(td);
+                    });
+
+                    tbody.appendChild(tr);
+                });
+
+                table.appendChild(tbody);
+            }
+
+            container.appendChild(table);
+        }
+
+        // Renderer function for object-based structure
+        function renderTableFromObjects(json, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = "";
+
+            const table = document.createElement('table');
+
+            // Create header
+            if (json.headers && json.headers.length > 0) {
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+
+                json.headers.forEach(header => {
+                    const th = document.createElement('th');
+                    th.textContent = header.label || header.key || header;
+                    headerRow.appendChild(th);
+                });
+
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+            }
+
+            // Create body
+            if (json.rows && json.rows.length > 0) {
+                const tbody = document.createElement('tbody');
+
+                json.rows.forEach(rowObj => {
+                    const tr = document.createElement('tr');
+
+                    json.headers.forEach(header => {
+                        const key = header.key || header;
+                        const td = document.createElement('td');
+                        td.textContent = rowObj[key] || '';
+                        tr.appendChild(td);
+                    });
+
+                    tbody.appendChild(tr);
+                });
+
+                table.appendChild(tbody);
+            }
+
+            container.appendChild(table);
+        }
+
+        // Auto-detect structure and render
+        function renderTable(json, containerId) {
+            if (!json) {
+                console.error('No JSON data provided');
+                return;
+            }
+
+            // Check if we have object-based rows or array-based rows
+            if (json.rows && json.rows.length > 0) {
+                if (Array.isArray(json.rows[0])) {
+                    renderTableFromArrays(json, containerId);
+                } else {
+                    renderTableFromObjects(json, containerId);
+                }
+            }
+        }
+
+        // Initialize the page
+        async function init() {
+            // Load JSON data from files
+            tableJson = await loadJsonData('../data/table.create.from-array.json');
+            tableJsonAlt = await loadJsonData('../data/table.create.from-object.json');
+
+            // Create buttons to switch between examples
+            const switchContainer = document.createElement('div');
+            switchContainer.innerHTML = `
+                <button onclick="renderTable(tableJson, 'table-container')">Show Array-based Table</button>
+                <button onclick="renderTable(tableJsonAlt, 'table-container')">Show Object-based Table</button>
+            `;
+            document.body.insertBefore(switchContainer, document.getElementById('table-container'));
+
+            // Initial render with array-based data
+            if (tableJson) {
+                renderTable(tableJson, "table-container");
+            }
+        }
+
+        // Start the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+
+</html>

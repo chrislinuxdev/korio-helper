@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dev Dashboard (POC)</title>
+    <style>
+        :root {
+            --bg: #0f1221;
+            --panel: #171a2a;
+            --muted: #b6c0d4;
+            --text: #e8ecf6;
+            --accent: #6ae3ff;
+            --good: #2fcf6e;
+            --warn: #ffcf4a;
+            --bad: #ff6b6b;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font: 14px/1.4 system-ui, Segoe UI, Roboto, Helvetica, Arial
+        }
+
+        header {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            padding: 14px 16px;
+            background: linear-gradient(180deg, #1a2040, transparent)
+        }
+
+        header h1 {
+            font-size: 16px;
+            margin: 0 8px 0 0;
+            letter-spacing: .3px
+        }
+
+        select,
+        button,
+        input {
+            background: #101327;
+            border: 1px solid #2a2f4a;
+            color: var(--text);
+            padding: 6px 8px;
+            border-radius: 8px;
+            outline: none
+        }
+
+        select:focus,
+        button:focus,
+        input:focus {
+            border-color: #3d4480;
+            box-shadow: 0 0 0 2px #3d448022
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #0e132a;
+            border: 1px solid #2a2f4a;
+            color: var(--muted)
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 12px;
+            padding: 12px
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid #2a2f4a;
+            border-radius: 14px;
+            box-shadow: 0 6px 20px #00000033;
+            overflow: hidden;
+            min-height: 60px
+        }
+
+        .card header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: #121731;
+            border-bottom: 1px solid #242949
+        }
+
+        .card header h3 {
+            margin: 0;
+            font-size: 13px;
+            font-weight: 600;
+            color: #dbe6ff
+        }
+
+        .card .body {
+            padding: 10px 12px
+        }
+
+        .foot {
+            opacity: .65;
+            padding: 8px 12px;
+            border-top: 1px dashed #2a2f4a;
+            font-size: 12px
+        }
+
+        .row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid #2a2f4a;
+            background: #0f1430;
+            min-width: 160px
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%
+        }
+
+        .dot.good {
+            background: var(--good)
+        }
+
+        .dot.warn {
+            background: var(--warn)
+        }
+
+        .dot.bad {
+            background: var(--bad)
+        }
+
+        .dot.idle {
+            background: #7c88a6
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px
+        }
+
+        th,
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #272c48
+        }
+
+        th {
+            color: #cdd8ff;
+            text-align: left;
+            font-weight: 600
+        }
+
+        tr:hover td {
+            background: #141a34
+        }
+
+        a.btn {
+            display: inline-block;
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1px solid #2a2f4a;
+            text-decoration: none;
+            color: var(--text);
+            background: #10142e
+        }
+
+        .col-3 {
+            grid-column: span 3
+        }
+
+        .col-4 {
+            grid-column: span 4
+        }
+
+        .col-6 {
+            grid-column: span 6
+        }
+
+        .col-8 {
+            grid-column: span 8
+        }
+
+        .col-12 {
+            grid-column: span 12
+        }
+
+        .muted {
+            color: var(--muted)
+        }
+
+        .spacer {
+            flex: 1
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Dev Dashboard</h1>
+        <span class="pill">Env:
+            <select id="envSelect"></select>
+        </span>
+        <span class="pill">Tenant:
+            <select id="tenantSelect"></select>
+        </span>
+        <span class="pill"><span id="ctxSummary" class="muted">—</span></span>
+        <div class="spacer"></div>
+        <button id="refreshBtn">Refresh</button>
+    </header>
+
+    <main class="grid" id="grid"></main>
+
+    <script>
+        /** ----------------------------------------------------------------------------------
+         * CONFIG: Define environments, tenants, data sources, and which widgets to render.
+         * You can replace inline data with real fetch() calls later.
+         * ----------------------------------------------------------------------------------*/
+        const DASHBOARD_CONFIG = {
+            environments: ["DEV", "TEST", "PLATFORM", "STAGING", "PROD"],
+            tenants: [
+                { id: "korio-global", name: "Korio Global" },
+                { id: "moderna", name: "Moderna" },
+                { id: "acme", name: "Acme Pharma" }
+            ],
+            // Widget layout. col spans are 12-grid.
+            layout: [
+                { type: "statusTiles", title: "Core Services", cols: 12, conf: { services: ["Mongo", "RabbitMQ", "SFTP", "API Gateway"] } },
+                { type: "jobsTable", title: "Jobs (last run)", cols: 8, conf: { limit: 8 } },
+                {
+                    type: "quickLinks", title: "Quick Launch", cols: 4, conf: {
+                        links: [
+                            { label: "ArgoCD", url: "https://argocd.example" },
+                            { label: "Global DB Viewer", url: "#" },
+                            { label: "SFTP Inbox", url: "#" },
+                            { label: "Grafana Logs", url: "#" }
+                        ]
+                    }
+                },
+                { type: "queueDepths", title: "Queue Depths", cols: 6, conf: { queues: ["supplies", "jobs", "events", "etl"] } },
+                { type: "fileTransfers", title: "Inbound/Outbound Files (24h)", cols: 6, conf: {} }
+            ],
+            // Data sources: swap these to real APIs later.
+            dataSources: {
+                async serviceStatuses(ctx) {
+                    // simulate environment-dependent statuses
+                    const seed = hash(ctx.env + ctx.tenant.id);
+                    const roll = (name, bias = 0) => (seed ^ hash(name)) % 100 + bias;
+                    return ["Mongo", "RabbitMQ", "SFTP", "API Gateway"].map(s => {
+                        const n = roll(s);
+                        return { name: s, status: n > 80 ? "bad" : n > 60 ? "warn" : n > 10 ? "good" : "idle", latency: (n % 30) + 5 };
+                    });
+                },
+                async recentJobs(ctx, limit = 10) {
+                    const names = ["Automated Resupply", "Randomization", "Inbound Fisher", "Outbound Fisher", "Index Sync", "Protocol Sweep", "Metrics ETL", "Nightly Cleanup", "Subject Sync", "Catalog Refresh"];
+                    const arr = names.slice(0, limit).map((n, i) => ({
+                        name: n,
+                        env: ctx.env,
+                        tenant: ctx.tenant.id,
+                        lastRun: tsAgo((i + 1) * (3 + (hash(n) % 7))),
+                        status: ["success", "success", "warn", "failed", "running"][(hash(n + ctx.env) % 5)],
+                        durationMs: 1200 + (hash(n) % 90000)
+                    }));
+                    return arr;
+                },
+                async queueDepths(ctx, queues) {
+                    return queues.map(q => ({ queue: q, depth: (hash(q + ctx.env) % 2000), dlq: (hash(q + "dlq") % 10) }));
+                },
+                async fileTransfers(ctx) {
+                    const items = [];
+                    for (let i = 0; i < 8; i++) {
+                        items.push({
+                            dir: (i % 2) ? "inbound" : "outbound",
+                            file: `${ctx.tenant.id}_${ctx.env.toLowerCase()}_${i}.xml`,
+                            sizeKb: (hash(ctx.env + i) % 900) + 100,
+                            when: tsAgo((i + 1) * (hash(ctx.tenant.id) % 6 + 1))
+                        });
+                    }
+                    return items;
+                }
+            }
+        };
+
+        /** ----------------------------------------------------------------------------------
+         * Simple utilities
+         * ----------------------------------------------------------------------------------*/
+        function hash(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h += (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24); } return (h >>> 0); }
+        function tsAgo(hours) { const d = new Date(Date.now() - hours * 3600e3); return d.toISOString().slice(0, 16).replace('T', ' '); }
+        function el(tag, attrs = {}, ...children) {
+            const e = document.createElement(tag);
+            for (const [k, v] of Object.entries(attrs || {})) {
+                if (k === "class") e.className = v;
+                else if (k === "style") e.style.cssText = v;
+                else if (k.startsWith("on") && typeof v === "function") e.addEventListener(k.substring(2), v);
+                else e.setAttribute(k, v);
+            }
+            for (const c of children) { e.append(c?.nodeType ? c : document.createTextNode(c)); }
+            return e;
+        }
+        function fmtMs(ms) { if (ms < 1000) return ms + "ms"; const s = (ms / 1000).toFixed(1); return s + "s"; }
+
+        /** ----------------------------------------------------------------------------------
+         * Widget registry
+         * Each widget exposes: render(container, ctx, conf)
+         * ctx = { env, tenant }
+         * ----------------------------------------------------------------------------------*/
+        const Widgets = {
+            statusTiles: {
+                title: "Core Services",
+                async render(container, ctx, conf) {
+                    const statuses = await DASHBOARD_CONFIG.dataSources.serviceStatuses(ctx);
+                    const row = el("div", { class: "row" });
+                    for (const s of statuses) {
+                        row.append(
+                            el("div", { class: "stat" },
+                                el("span", { class: `dot ${s.status}` }),
+                                el("div", {},
+                                    el("div", {}, s.name),
+                                    el("div", { class: "muted", style: "font-size:12px" }, `${s.status.toUpperCase()} • ~${s.latency}ms`)
+                                )
+                            )
+                        );
+                    }
+                    container.append(row);
+                }
+            },
+
+            jobsTable: {
+                async render(container, ctx, conf) {
+                    const jobs = await DASHBOARD_CONFIG.dataSources.recentJobs(ctx, conf.limit || 10);
+                    const tbl = el("table");
+                    const thead = el("thead", {}, el("tr", {},
+                        el("th", {}, "Job"),
+                        el("th", {}, "Last Run"),
+                        el("th", {}, "Status"),
+                        el("th", {}, "Duration")
+                    ));
+                    const tbody = el("tbody");
+                    for (const j of jobs) {
+                        const color = j.status === "success" ? "good" : j.status === "failed" ? "bad" : j.status === "running" ? "warn" : "idle";
+                        tbody.append(el("tr", {},
+                            el("td", {}, j.name),
+                            el("td", {}, j.lastRun),
+                            el("td", {}, el("span", { class: `pill` }, el("span", { class: `dot ${color}` }), j.status)),
+                            el("td", {}, fmtMs(j.durationMs))
+                        ));
+                    }
+                    tbl.append(thead, tbody);
+                    container.append(tbl);
+                    const foot = el("div", { class: "foot muted" }, `Env=${ctx.env} • Tenant=${ctx.tenant.name}`);
+                    container.append(foot);
+                }
+            },
+
+            quickLinks: {
+                async render(container, ctx, conf) {
+                    const row = el("div", { class: "row" });
+                    (conf.links || []).forEach(l => {
+                        row.append(el("a", { href: l.url, target: "_blank", class: "btn" }, l.label));
+                    });
+                    container.append(row);
+                }
+            },
+
+            queueDepths: {
+                async render(container, ctx, conf) {
+                    const rows = await DASHBOARD_CONFIG.dataSources.queueDepths(ctx, conf.queues || []);
+                    const tbl = el("table");
+                    const thead = el("thead", {}, el("tr", {}, el("th", {}, "Queue"), el("th", {}, "Depth"), el("th", {}, "DLQ")));
+                    const tbody = el("tbody");
+                    for (const r of rows) {
+                        const color = r.depth > 1000 ? "bad" : r.depth > 200 ? "warn" : "good";
+                        tbody.append(el("tr", {},
+                            el("td", {}, r.queue),
+                            el("td", {}, el("span", { class: "pill" }, el("span", { class: `dot ${color}` }), String(r.depth))),
+                            el("td", {}, r.dlq ? el("span", { class: "pill" }, el("span", { class: "dot bad" }), String(r.dlq)) : "0")
+                        ));
+                    }
+                    tbl.append(thead, tbody);
+                    container.append(tbl);
+                }
+            },
+
+            fileTransfers: {
+                async render(container, ctx) {
+                    const items = await DASHBOARD_CONFIG.dataSources.fileTransfers(ctx);
+                    const tbl = el("table");
+                    const thead = el("thead", {}, el("tr", {}, el("th", {}, "Dir"), el("th", {}, "File"), el("th", {}, "Size (KB)"), el("th", {}, "When")));
+                    const tbody = el("tbody");
+                    for (const f of items) {
+                        tbody.append(el("tr", {},
+                            el("td", {}, f.dir),
+                            el("td", {}, f.file),
+                            el("td", {}, String(f.sizeKb)),
+                            el("td", {}, f.when)
+                        ));
+                    }
+                    tbl.append(thead, tbody);
+                    container.append(tbl);
+                }
+            }
+        };
+
+        /** ----------------------------------------------------------------------------------
+         * App bootstrapping
+         * ----------------------------------------------------------------------------------*/
+        const state = {
+            env: DASHBOARD_CONFIG.environments[0],
+            tenant: DASHBOARD_CONFIG.tenants[0]
+        };
+
+        const envSelect = document.getElementById("envSelect");
+        const tenantSelect = document.getElementById("tenantSelect");
+        const grid = document.getElementById("grid");
+        const refreshBtn = document.getElementById("refreshBtn");
+        const ctxSummary = document.getElementById("ctxSummary");
+
+        function populateSelectors() {
+            envSelect.innerHTML = DASHBOARD_CONFIG.environments.map(e => `<option value="${e}">${e}</option>`).join("");
+            tenantSelect.innerHTML = DASHBOARD_CONFIG.tenants.map(t => `<option value="${t.id}">${t.name}</option>`).join("");
+        }
+
+        envSelect.addEventListener("change", () => { state.env = envSelect.value; render(); });
+        tenantSelect.addEventListener("change", () => { state.tenant = DASHBOARD_CONFIG.tenants.find(t => t.id === tenantSelect.value); render(); });
+        refreshBtn.addEventListener("click", () => render());
+
+        async function render() {
+            ctxSummary.textContent = `${state.env} • ${state.tenant.name}`;
+            grid.innerHTML = "";
+            for (const w of DASHBOARD_CONFIG.layout) {
+                const widget = Widgets[w.type];
+                if (!widget) { console.warn("Unknown widget type:", w.type); continue; }
+                const card = el("section", { class: `card col-${w.cols || 4}` });
+                const head = el("header", {},
+                    el("h3", {}, w.title || widget.title || w.type),
+                    el("span", { class: "muted" }, w.type)
+                );
+                const body = el("div", { class: "body" });
+                card.append(head, body);
+                grid.append(card);
+                // render widget
+                try {
+                    await widget.render(body, { env: state.env, tenant: state.tenant }, w.conf || {});
+                } catch (err) {
+                    body.append(el("div", { class: "muted" }, "Error rendering widget: " + err.message));
+                    console.error(err);
+                }
+            }
+        }
+
+        (function init() {
+            populateSelectors();
+            render();
+        })();
+    </script>
+</body>
+
+</html>
