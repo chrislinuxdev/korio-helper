@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collapsible Tree Structure</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .tree-container {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            max-width: 600px;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin-right: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background-color: #0056b3;
+        }
+
+        .tree {
+            list-style: none;
+            padding-left: 0;
+            margin: 0;
+        }
+
+        .tree-node {
+            margin: 2px 0;
+        }
+
+        .tree-item {
+            display: flex;
+            align-items: center;
+            padding: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+            transition: background-color 0.2s;
+        }
+
+        .tree-item:hover {
+            background-color: #f0f8ff;
+        }
+
+        .tree-icon {
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .tree-label {
+            flex: 1;
+            font-size: 14px;
+        }
+
+        .tree-children {
+            list-style: none;
+            padding-left: 20px;
+            margin: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .tree-children.collapsed {
+            max-height: 0;
+        }
+
+        .tree-children.expanded {
+            max-height: 1000px;
+        }
+
+        .folder-icon::before {
+            content: "📁";
+        }
+
+        .folder-icon.open::before {
+            content: "📂";
+        }
+
+        .file-icon::before {
+            content: "📄";
+        }
+
+        .expand-icon {
+            margin-right: 5px;
+            font-size: 10px;
+            color: #999;
+            width: 12px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="tree-container">
+        <h2>File Explorer Tree</h2>
+        
+        <div class="controls">
+            <button class="btn" onclick="expandAll()">Expand All</button>
+            <button class="btn" onclick="collapseAll()">Collapse All</button>
+        </div>
+        
+        <ul class="tree" id="treeRoot"></ul>
+    </div>
+
+    <script>
+        // Hard-coded JSON data
+        const treeData = {
+            name: "Project Root",
+            type: "folder",
+            children: [
+                {
+                    name: "src",
+                    type: "folder",
+                    children: [
+                        {
+                            name: "components",
+                            type: "folder",
+                            children: [
+                                { name: "Header.js", type: "file" },
+                                { name: "Footer.js", type: "file" },
+                                { name: "Sidebar.js", type: "file" }
+                            ]
+                        },
+                        {
+                            name: "utils",
+                            type: "folder",
+                            children: [
+                                { name: "helpers.js", type: "file" },
+                                { name: "constants.js", type: "file" }
+                            ]
+                        },
+                        { name: "index.js", type: "file" },
+                        { name: "App.js", type: "file" }
+                    ]
+                },
+                {
+                    name: "public",
+                    type: "folder",
+                    children: [
+                        { name: "index.html", type: "file" },
+                        { name: "favicon.ico", type: "file" },
+                        {
+                            name: "assets",
+                            type: "folder",
+                            children: [
+                                { name: "logo.png", type: "file" },
+                                { name: "styles.css", type: "file" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    name: "docs",
+                    type: "folder",
+                    children: [
+                        { name: "README.md", type: "file" },
+                        { name: "API.md", type: "file" },
+                        {
+                            name: "guides",
+                            type: "folder",
+                            children: [
+                                { name: "setup.md", type: "file" },
+                                { name: "deployment.md", type: "file" }
+                            ]
+                        }
+                    ]
+                },
+                { name: "package.json", type: "file" },
+                { name: "webpack.config.js", type: "file" },
+                { name: ".gitignore", type: "file" }
+            ]
+        };
+
+        function createTreeNode(nodeData, isRoot = false) {
+            const li = document.createElement('li');
+            li.className = 'tree-node';
+
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'tree-item';
+            
+            if (nodeData.type === 'folder') {
+                // Add expand/collapse arrow for folders
+                const expandIcon = document.createElement('span');
+                expandIcon.className = 'expand-icon';
+                expandIcon.textContent = '▶';
+                itemDiv.appendChild(expandIcon);
+                
+                // Add folder icon
+                const icon = document.createElement('span');
+                icon.className = 'tree-icon folder-icon';
+                itemDiv.appendChild(icon);
+                
+                // Add click handler for folder
+                itemDiv.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    toggleNode(li);
+                });
+            } else {
+                // Add spacing for files (no arrow)
+                const spacing = document.createElement('span');
+                spacing.className = 'expand-icon';
+                itemDiv.appendChild(spacing);
+                
+                // Add file icon
+                const icon = document.createElement('span');
+                icon.className = 'tree-icon file-icon';
+                itemDiv.appendChild(icon);
+                
+                // Add click handler for files
+                itemDiv.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    alert(`File clicked: ${nodeData.name}`);
+                });
+            }
+
+            // Add label
+            const label = document.createElement('span');
+            label.className = 'tree-label';
+            label.textContent = nodeData.name;
+            itemDiv.appendChild(label);
+
+            li.appendChild(itemDiv);
+
+            // If it has children, create nested structure
+            if (nodeData.children && nodeData.children.length > 0) {
+                const childrenUl = document.createElement('ul');
+                childrenUl.className = 'tree-children collapsed';
+                
+                nodeData.children.forEach(child => {
+                    const childNode = createTreeNode(child);
+                    childrenUl.appendChild(childNode);
+                });
+                
+                li.appendChild(childrenUl);
+            }
+
+            return li;
+        }
+
+        function toggleNode(nodeElement) {
+            const children = nodeElement.querySelector('.tree-children');
+            const expandIcon = nodeElement.querySelector('.expand-icon');
+            const folderIcon = nodeElement.querySelector('.folder-icon');
+            
+            if (children) {
+                if (children.classList.contains('collapsed')) {
+                    children.classList.remove('collapsed');
+                    children.classList.add('expanded');
+                    expandIcon.textContent = '▼';
+                    folderIcon.classList.add('open');
+                } else {
+                    children.classList.remove('expanded');
+                    children.classList.add('collapsed');
+                    expandIcon.textContent = '▶';
+                    folderIcon.classList.remove('open');
+                }
+            }
+        }
+
+        function expandAll() {
+            const allChildren = document.querySelectorAll('.tree-children');
+            const allExpandIcons = document.querySelectorAll('.expand-icon');
+            const allFolderIcons = document.querySelectorAll('.folder-icon');
+            
+            allChildren.forEach(children => {
+                children.classList.remove('collapsed');
+                children.classList.add('expanded');
+            });
+            
+            allExpandIcons.forEach(icon => {
+                if (icon.textContent === '▶') {
+                    icon.textContent = '▼';
+                }
+            });
+            
+            allFolderIcons.forEach(icon => {
+                icon.classList.add('open');
+            });
+        }
+
+        function collapseAll() {
+            const allChildren = document.querySelectorAll('.tree-children');
+            const allExpandIcons = document.querySelectorAll('.expand-icon');
+            const allFolderIcons = document.querySelectorAll('.folder-icon');
+            
+            allChildren.forEach(children => {
+                children.classList.remove('expanded');
+                children.classList.add('collapsed');
+            });
+            
+            allExpandIcons.forEach(icon => {
+                if (icon.textContent === '▼') {
+                    icon.textContent = '▶';
+                }
+            });
+            
+            allFolderIcons.forEach(icon => {
+                icon.classList.remove('open');
+            });
+        }
+
+        // Initialize the tree when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            const treeRoot = document.getElementById('treeRoot');
+            const rootNode = createTreeNode(treeData, true);
+            treeRoot.appendChild(rootNode);
+            
+            // Expand the root by default
+            toggleNode(rootNode);
+        });
+    </script>
+</body>
+</html>
