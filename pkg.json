@@ -1,0 +1,24 @@
+{
+    "name": "dev-dash",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "main": "dist/main.js",
+    "scripts": {
+        "clean": "rimraf dist",
+        "build": "npm run clean && tsc && npm run copy:static",
+        "copy:static": "copyfiles -u 1 \"src/pages/**/*\" dist/src/pages && copyfiles -u 1 \"src/styles/**/*\" dist/src/styles && copyfiles -u 1 \"public/**/*\" dist/public",
+        "start": "electron .",
+        "dev": "concurrently -k -n TSC,ELECTRON \"tsc -w\" \"wait-on dist/main.js && electron .\""
+    },
+    "dependencies": {
+        "electron": "^30.0.0"
+    },
+    "devDependencies": {
+        "concurrently": "^9.0.0",
+        "copyfiles": "^2.4.1",
+        "rimraf": "^6.0.0",
+        "typescript": "^5.5.0",
+        "wait-on": "^8.0.0"
+    }
+}
