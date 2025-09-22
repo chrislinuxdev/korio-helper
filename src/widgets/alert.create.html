@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Toast Notifications – POC</title>
+    <style>
+        :root {
+            --gap: 10px;
+            --radius: 10px;
+            --pad: 12px 14px;
+        }
+
+        /* Toast mount point */
+        #toast-root {
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: var(--gap);
+            z-index: 9999;
+            pointer-events: none;
+            /* to let clicks fall through except on toasts */
+        }
+
+        /* Toast base */
+        .toast {
+            pointer-events: auto;
+            min-width: 260px;
+            max-width: 420px;
+            border-radius: var(--radius);
+            padding: var(--pad);
+            color: #fff;
+            background: #333;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, .18), 0 2px 8px rgba(0, 0, 0, .12);
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px 12px;
+            align-items: start;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity .2s ease, transform .2s ease;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast.hide {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        .toast__msg {
+            margin: 0;
+            line-height: 1.35;
+        }
+
+        .toast__close {
+            background: transparent;
+            border: 0;
+            color: inherit;
+            font-size: 18px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0 2px;
+            opacity: .8;
+        }
+
+        .toast__close:hover {
+            opacity: 1;
+        }
+
+        /* Variants */
+        .toast--info {
+            background: #334155;
+            border-left: 4px solid #60a5fa;
+        }
+
+        .toast--success {
+            background: #14532d;
+            border-left: 4px solid #22c55e;
+        }
+
+        .toast--warn {
+            background: #713f12;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .toast--error {
+            background: #7f1d1d;
+            border-left: 4px solid #ef4444;
+        }
+
+        /* Respect reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+
+            .toast,
+            .toast.show,
+            .toast.hide {
+                transition: none;
+                transform: none;
+            }
+        }
+
+        /* Demo controls (optional) */
+        .demo {
+            position: fixed;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .demo button {
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            background: #fff;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Where toasts go -->
+    <div id="toast-root" aria-live="polite" aria-atomic="true"></div>
+
+    <div class="demo">
+        <button onclick="showToast('Saved successfully!', { type: 'success' })">Success</button>
+        <button
+            onclick="showToast('Heads up: deploying to STAGING soon.', { type: 'warn', duration: 5000 })">Warn</button>
+        <button onclick="showToast('Could not reach jobs-node. Retrying…', { type: 'info' })">Info</button>
+        <button
+            onclick="showToast('Dispatch failed: 500 Internal Server Error', { type: 'error', duration: 6000 })">Error</button>
+    </div>
+
+    <script>
+        // Toast API
+        // showToast(message, { type = 'info' | 'success' | 'warn' | 'error', duration = 3000 })
+        (function initToast() {
+            const root = document.getElementById('toast-root');
+
+            window.showToast = function (message, opts = {}) {
+                const { type = 'info', duration = 3000 } = opts;
+
+                // Create toast
+                const toast = document.createElement('div');
+                toast.className = `toast toast--${type}`;
+                toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+                toast.innerHTML = `
+          <p class="toast__msg"></p>
+          <button class="toast__close" aria-label="Close notification" title="Close">×</button>
+        `;
+                toast.querySelector('.toast__msg').textContent = message;
+
+                // Close handler
+                const close = () => {
+                    toast.classList.add('hide');
+                    toast.addEventListener('transitionend', () => toast.remove(), { once: true });
+                    // If transitions are disabled, remove immediately
+                    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) toast.remove();
+                };
+                toast.querySelector('.toast__close').addEventListener('click', close);
+
+                // Auto-dismiss
+                const timeoutId = setTimeout(close, Math.max(1000, duration));
+
+                // Pause timer on hover; resume on leave
+                toast.addEventListener('mouseenter', () => clearTimeout(timeoutId));
+                toast.addEventListener('mouseleave', () => setTimeout(close, 1200), { once: true });
+
+                // Mount + animate
+                root.appendChild(toast);
+                requestAnimationFrame(() => toast.classList.add('show'));
+
+                return toast; // in case you want to keep a handle
+            };
+        })();
+    </script>
+</body>
+
+</html>
