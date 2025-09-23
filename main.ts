@@ -4,7 +4,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 // You'll need to install electron-store first: npm install electron-store
-const Store = require('electron-store');
+import Store from 'electron-store';
 
 // Initialize store
 const store = new Store({
