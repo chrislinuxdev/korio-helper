@@ -109,6 +109,17 @@ main#app {
   background: #f0f0f0;
 }
 
+.link-item[data-external='true']::after {
+  content: '↗';
+  margin-left: 4px;
+  font-size: 0.8em;
+  opacity: 0.7;
+}
+
+.link-item[data-external='true']:hover::after {
+  opacity: 1;
+}
+
 .link-type {
   font-size: 0.7rem;
   color: #999;
@@ -123,11 +134,11 @@ main#app {
   overflow-y: auto;
 }
 
-.placeholder-section {
+/* .placeholder-section {
   border: 1px dashed #bbb;
   padding: 12px;
   margin-bottom: 10px;
   border-radius: 6px;
   color: #777;
   font-style: italic;
-}
+} */

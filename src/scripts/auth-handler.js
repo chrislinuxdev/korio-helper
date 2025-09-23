@@ -25,9 +25,10 @@ class AuthHandler {
   }
 
   static async handleLinkClick(link) {
+    console.debug('Handling link click for:', link);
     const enhancedUrl = await this.injectTokenForUrl(link.url);
 
-    // Open with token if available
+    // Open with token if available (NOT for external links)
     if (link.type === 'web') {
       // Open in external browser with token
       window.open(enhancedUrl, '_blank');
