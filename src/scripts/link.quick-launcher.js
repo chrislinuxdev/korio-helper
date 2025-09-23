@@ -7,7 +7,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const navTabsContainer = document.getElementById('nav-tabs');
   const sidebarContent = document.getElementById('sidebar-content');
-  const launcherContainer = document.getElementById('launcher-container');
+  // const launcherContainer = document.getElementById('launcher-container');
+
+  // Debug: Check if elements exist
+  console.debug('navTabsContainer:', navTabsContainer);
+  console.debug('sidebarContent:', sidebarContent);
+  // console.debug('launcherContainer:', launcherContainer);
 
   function createNavTabs() {
     config.groups.forEach((group, index) => {
@@ -43,10 +48,30 @@ document.addEventListener('DOMContentLoaded', async () => {
       linkElement.className = 'link-item';
       linkElement.href = '#'; // Prevent default navigation
 
-      // Handle click with authentication
+      if (link.url && (link.type === 'external' || link.url.startsWith('http'))) {
+        linkElement.setAttribute('data-external', 'true');
+      }
+
+      // Handle click with authentication and external opening
       linkElement.addEventListener('click', async (e) => {
         e.preventDefault();
-        await AuthHandler.handleLinkClick(link);
+
+        // Handle authentication if needed
+        /* 
+          // REMOVED (for now) - using external browser & AuthHandler not needed here
+          const shouldProceed = await AuthHandler.handleLinkClick(link);
+          console.debug('shouldProceed:', shouldProceed, 'for link:', link.title);
+        */
+        const shouldProceed = true;
+
+        if (shouldProceed && link.url) {
+          // Open in default browser
+          const result = await window.electronAPI.openExternal(link.url);
+          if (!result.success) {
+            console.error('Failed to open link:', result.error);
+            // Optionally show user notification
+          }
+        }
       });
 
       const linkTitle = document.createElement('div');
@@ -171,16 +196,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  function renderPlaceholders() {
-    config.placeholders.forEach((placeholder) => {
-      const placeholderElement = document.createElement('div');
-      placeholderElement.className = 'placeholder-section';
-      placeholderElement.textContent = `+ ${placeholder}`;
-      launcherContainer.appendChild(placeholderElement);
-    });
-  }
+  // function renderPlaceholders() {
+  //   // Add null check for the container
+  //   if (!launcherContainer) {
+  //     console.warn('launcher-container element not found, skipping placeholders');
+  //     return;
+  //   }
 
-  // Initialize
-  createNavTabs();
-  renderPlaceholders();
+  //   config.placeholders.forEach((placeholder) => {
+  //     const placeholderElement = document.createElement('div');
+  //     placeholderElement.className = 'placeholder-section';
+  //     placeholderElement.textContent = `+ ${placeholder}`;
+  //     launcherContainer.appendChild(placeholderElement);
+  //   });
+  // }
+
+  try {
+    createNavTabs();
+    // renderPlaceholders();
+  } catch (error) {
+    console.error('Error initializing app:', error);
+  }
 });

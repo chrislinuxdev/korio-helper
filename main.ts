@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Tray, Menu, screen, ipcMain, nativeImage, globalShortcut } from 'electron';
+import { app, BrowserWindow, Tray, Menu, screen, ipcMain, nativeImage, globalShortcut, shell } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -32,25 +32,16 @@ function pickHtmlPath() {
 }
 
 function createWindow() {
+  console.debug('Creating window...');
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
 
-  const shouldStayOnTop = false; //process.env.ALWAYS_ON_TOP !== 'false';
-
-  win = new BrowserWindow({
-    width: Math.min(400, Math.floor(width * 0.25)),
-    height: Math.min(600, Math.floor(height * 0.7)),
-    show: false, // Start completely hidden
-    frame: false,
-    alwaysOnTop: shouldStayOnTop,
-    skipTaskbar: true,
-    resizable: false,
-    movable: true,
-    minimizable: false,
-    maximizable: false,
-    fullscreenable: false,
-    transparent: true,
-    vibrancy: 'sidebar',
-    titleBarStyle: 'hidden',
+  const mainWindow = new BrowserWindow({
+    width: 800,
+    height: 600,
+    resizable: true, // Enable resizing
+    minWidth: 400, // Set minimum width
+    minHeight: 300, // Set minimum height
+    titleBarStyle: 'default', // Shows standard macOS window controls
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -58,55 +49,67 @@ function createWindow() {
     },
   });
 
+  // Assign mainWindow to the global win variable
+  win = mainWindow;
+
+  // Enable window snapping on macOS
+  if (process.platform === 'darwin') {
+    mainWindow.setVibrancy('under-window');
+  }
+
+  // Optional: Add maximize/minimize functionality
+  mainWindow.setMenu(null); // Remove default menu if you want
+
   // Position it on the right edge
-  const x = width - win.getBounds().width - 20;
+  const x = width - mainWindow.getBounds().width - 20;
   const y = 50;
-  win.setPosition(x, y);
+  mainWindow.setPosition(x, y);
 
   // Don't show automatically - only via shortcut
-  win.once('ready-to-show', () => {
-    // Don't call win.show() here
+  mainWindow.once('ready-to-show', () => {
+    // Don't call mainWindow.show() here
     console.log('Window ready, use shortcut to show');
   });
 
   const htmlPath = pickHtmlPath();
   if (!htmlPath) {
-    win.loadURL('about:blank');
-    win.webContents.executeJavaScript(
+    mainWindow.loadURL('about:blank');
+    mainWindow.webContents.executeJavaScript(
       `document.body.innerHTML = '<pre style="padding:16px">No index.html found.\\nExpected one of:\\n${distHtml}\\n${srcHtml}</pre>'`,
     );
     return;
   }
 
-  win.webContents.on('did-finish-load', () => console.log('[MAIN] did-finish-load:', htmlPath));
-  win.webContents.on('did-fail-load', (_e, code, desc, url) => {
+  mainWindow.webContents.on('did-finish-load', () => console.log('[MAIN] did-finish-load:', htmlPath));
+  mainWindow.webContents.on('did-fail-load', (_e, code, desc, url) => {
     console.error('[MAIN] did-fail-load:', code, desc, 'url:', url);
   });
 
-  win.loadFile(htmlPath);
-  win.webContents.openDevTools({ mode: 'detach' }); // debug; remove later
+  mainWindow.loadFile(htmlPath);
+  mainWindow.webContents.openDevTools({ mode: 'detach' }); // debug; remove later
 
   // Hide window when clicking outside or losing focus
-  win.on('blur', () => {
-    if (!win.webContents.isDevToolsOpened()) {
+  mainWindow.on('blur', () => {
+    if (!mainWindow.webContents.isDevToolsOpened()) {
       // Add a small delay to prevent immediate hiding
       setTimeout(() => {
-        if (!win.isFocused()) {
-          win.hide();
+        if (!mainWindow.isFocused()) {
+          mainWindow.hide();
         }
       }, 100);
     }
   });
 
   // Show/hide with slide animation
-  win.on('show', () => {
+  mainWindow.on('show', () => {
+    console.debug('Show/hide with slide animation');
     // Optional: Add slide-in animation
-    const bounds = win.getBounds();
-    win.setBounds({ ...bounds, x: width }, false);
-    win.setBounds({ ...bounds, x: width - bounds.width - 20 }, true);
+    const bounds = mainWindow.getBounds();
+    mainWindow.setBounds({ ...bounds, x: width }, false);
+    mainWindow.setBounds({ ...bounds, x: width - bounds.width - 20 }, true);
   });
 
-  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true }); // Show on all desktops
+  mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true }); // Show on all desktops
   // win.setLevel('floating'); // Ensure it floats above other windows
 }
 
@@ -158,6 +161,17 @@ ipcMain.handle('delete-token', async (event, key) => {
   return true;
 });
 
+// Add IPC handler for opening external links
+ipcMain.handle('open-external', async (event, url) => {
+  try {
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to open external URL:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 // Enable live reload for development
 if (process.env.NODE_ENV === 'development') {
   require('electron-reload')(__dirname, {
@@ -167,6 +181,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 app.whenReady().then(() => {
+  console.log('App is ready');
   createWindow();
   createTray();
 
