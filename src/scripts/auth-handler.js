@@ -15,7 +15,7 @@ class AuthHandler {
       if (url.includes(domain)) {
         const token = await TokenManager.getToken(tokenKey);
         if (token) {
-          // You could inject this as a header or URL parameter
+          // Inject token as URL parameter
           return `${url}?token=${token}`;
         }
       }
@@ -29,11 +29,11 @@ class AuthHandler {
 
     // Open with token if available
     if (link.type === 'web') {
-      // Open in external browser
-      require('electron').shell.openExternal(enhancedUrl);
+      // Open in external browser with token
+      window.open(enhancedUrl, '_blank');
     } else if (link.type === 'file') {
-      // Open file
-      require('electron').shell.openPath(link.url.replace('file://', ''));
+      // Open file (no token needed)
+      window.open(link.url, '_blank');
     }
   }
 }

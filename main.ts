@@ -2,19 +2,7 @@ import { app, BrowserWindow, Tray, Menu, screen, ipcMain, nativeImage, globalSho
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-
-// You'll need to install electron-store first: npm install electron-store
 import Store from 'electron-store';
-
-// Initialize store
-const store = new Store({
-  name: 'korio-dashboard',
-  // encryptionKey: 'your-encryption-key-here' // Optional encryption
-});
-
-let win = null;
-let tray = null;
-let isQuitting = false;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,6 +13,16 @@ const distHtml = path.join(__dirname, 'src', 'pages', 'index.html'); // Option A
 const srcHtml = path.join(projectRoot, 'src', 'pages', 'index.html'); // Option B (source)
 const preloadJs = path.join(__dirname, 'preload.js'); // compiled preload
 const trayPng = path.join(projectRoot, 'public', 'trayTemplate.png'); // icon in project/public
+
+// Initialize store
+const store = new Store({
+  name: 'korio-dashboard',
+  // encryptionKey: 'your-encryption-key-here' // Optional encryption
+});
+
+let win = null;
+let tray = null;
+let isQuitting = false;
 
 function pickHtmlPath() {
   if (fs.existsSync(distHtml)) return distHtml; // prefer packaged/copied
