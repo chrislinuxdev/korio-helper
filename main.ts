@@ -35,18 +35,36 @@ function createWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
 
   win = new BrowserWindow({
-    width: Math.min(1000, Math.floor(width * 0.7)),
-    height: Math.min(800, Math.floor(height * 0.8)),
-    show: true,
-    frame: true,
+    width: Math.min(400, Math.floor(width * 0.25)), // Smaller, sidebar-like width
+    height: Math.min(600, Math.floor(height * 0.7)),
+    show: false, // Start hidden
+    frame: false, // Remove window frame for clean look
+    alwaysOnTop: true, // Keep on top of all windows
+    skipTaskbar: true, // Don't show in taskbar
+    resizable: false, // Prevent resizing
+    movable: true, // Allow dragging
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    transparent: true, // For rounded corners/shadows
+    vibrancy: 'sidebar', // macOS blur effect
+    titleBarStyle: 'hidden',
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'), // Make sure this path is correct
+      preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
     },
   });
 
-  win.center();
+  // Position it on the right edge (like iOS sidebar)
+  const x = width - win.getBounds().width - 20; // 20px from right edge
+  const y = 50; // 50px from top
+  win.setPosition(x, y);
+
+  // Show with animation
+  win.once('ready-to-show', () => {
+    win.show();
+  });
 
   const htmlPath = pickHtmlPath();
   if (!htmlPath) {
@@ -68,16 +86,25 @@ function createWindow() {
   // Hide window when clicking outside or losing focus
   win.on('blur', () => {
     if (!win.webContents.isDevToolsOpened()) {
-      win.hide();
+      // Add a small delay to prevent immediate hiding
+      setTimeout(() => {
+        if (!win.isFocused()) {
+          win.hide();
+        }
+      }, 100);
     }
   });
 
-  win.on('close', (event) => {
-    if (!isQuitting) {
-      event.preventDefault();
-      win.hide();
-    }
+  // Show/hide with slide animation
+  win.on('show', () => {
+    // Optional: Add slide-in animation
+    const bounds = win.getBounds();
+    win.setBounds({ ...bounds, x: width }, false);
+    win.setBounds({ ...bounds, x: width - bounds.width - 20 }, true);
   });
+
+  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true }); // Show on all desktops
+  // win.setLevel('floating'); // Ensure it floats above other windows
 }
 
 function createTray() {
@@ -139,9 +166,16 @@ if (process.env.NODE_ENV === 'development') {
 app.whenReady().then(() => {
   createWindow();
   createTray();
+
+  // Global shortcut to toggle
   globalShortcut.register('Control+Alt+D', () => {
     if (!win) return;
-    win.isVisible() ? win.hide() : win.show();
+    if (win.isVisible()) {
+      win.hide();
+    } else {
+      win.show();
+      win.focus(); // Ensure it gets focus when shown
+    }
   });
 });
 
