@@ -40,7 +40,7 @@ function createWindow() {
     show: true,
     frame: true,
     webPreferences: {
-      preload: preloadJs, // must point to compiled JS
+      preload: path.join(__dirname, 'preload.js'), // Make sure this path is correct
       contextIsolation: true,
       nodeIntegration: false,
     },
