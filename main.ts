@@ -34,20 +34,22 @@ function pickHtmlPath() {
 function createWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
 
+  const shouldStayOnTop = false; //process.env.ALWAYS_ON_TOP !== 'false';
+
   win = new BrowserWindow({
-    width: Math.min(400, Math.floor(width * 0.25)), // Smaller, sidebar-like width
+    width: Math.min(400, Math.floor(width * 0.25)),
     height: Math.min(600, Math.floor(height * 0.7)),
-    show: false, // Start hidden
-    frame: false, // Remove window frame for clean look
-    alwaysOnTop: true, // Keep on top of all windows
-    skipTaskbar: true, // Don't show in taskbar
-    resizable: false, // Prevent resizing
-    movable: true, // Allow dragging
+    show: false, // Start completely hidden
+    frame: false,
+    alwaysOnTop: shouldStayOnTop,
+    skipTaskbar: true,
+    resizable: false,
+    movable: true,
     minimizable: false,
     maximizable: false,
     fullscreenable: false,
-    transparent: true, // For rounded corners/shadows
-    vibrancy: 'sidebar', // macOS blur effect
+    transparent: true,
+    vibrancy: 'sidebar',
     titleBarStyle: 'hidden',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -56,14 +58,15 @@ function createWindow() {
     },
   });
 
-  // Position it on the right edge (like iOS sidebar)
-  const x = width - win.getBounds().width - 20; // 20px from right edge
-  const y = 50; // 50px from top
+  // Position it on the right edge
+  const x = width - win.getBounds().width - 20;
+  const y = 50;
   win.setPosition(x, y);
 
-  // Show with animation
+  // Don't show automatically - only via shortcut
   win.once('ready-to-show', () => {
-    win.show();
+    // Don't call win.show() here
+    console.log('Window ready, use shortcut to show');
   });
 
   const htmlPath = pickHtmlPath();
@@ -167,16 +170,44 @@ app.whenReady().then(() => {
   createWindow();
   createTray();
 
-  // Global shortcut to toggle
-  globalShortcut.register('Control+Alt+D', () => {
+  // Register global shortcuts
+  // Use environment variable for shortcut
+  const shortcut = 'CommandOrControl+Shift+K'; //Add process.env.TOGGLE_SHORTCUT later
+  const toggleShortcut = globalShortcut.register(shortcut, () => {
     if (!win) return;
+
     if (win.isVisible()) {
       win.hide();
+      console.log('Window hidden');
     } else {
       win.show();
       win.focus(); // Ensure it gets focus when shown
+      console.log('Window shown');
+    }
+  });
+
+  // Alternative shortcuts you can use:
+  // 'CommandOrControl+Alt+D' - Ctrl/Cmd + Alt + D
+  // 'CommandOrControl+Shift+Space' - Ctrl/Cmd + Shift + Space
+  // 'F12' - Just F12 key
+  // 'Alt+Space' - Alt + Space
+
+  if (!toggleShortcut) {
+    console.error('Failed to register global shortcut');
+  } else {
+    console.log('Global shortcut registered:', shortcut);
+  }
+
+  // Optional: Register additional shortcuts
+  globalShortcut.register('CommandOrControl+Shift+H', () => {
+    if (win && win.isVisible()) {
+      win.hide();
+      console.log('Window force hidden');
     }
   });
 });
 
-app.on('will-quit', () => globalShortcut.unregisterAll());
+// Clean up shortcuts when app is closing
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
+});
